@@ -73,78 +73,30 @@ elseif ($method === 'DELETE') {
     }
 }
 
-// Crear cruso
+// Crear curso
 elseif ($method === 'POST') {
-    if (!isset($_FILES['imagen']) || !isset($_POST['titulo']) || !isset($_POST['precio'])) {
+    $input = json_decode(file_get_contents("php://input"), true);
+
+    // Validación de campos obligatorios
+    if (
+        !isset($input['titulo']) ||
+        !isset($input['imagen']) ||
+        !isset($input['precio']) ||
+        !isset($input['id_creador'])
+    ) {
         http_response_code(400);
-        echo json_encode(['error' => 'Faltan datos o imagen']);
+        echo json_encode(['error' => 'Faltan datos obligatorios: titulo, imagen, precio o id_creador']);
         exit;
     }
 
-    $file = $_FILES['imagen'];
-    $tmpPath = $file['tmp_name'];
-
-    if (!file_exists($tmpPath)) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Archivo temporal no encontrado']);
-        exit;
-    }
-
-    $fileName = uniqid() . '_' . basename($file['name']);
-    $bucketName = 'cursos';
-
-    // Subida con PUT
-    $bucketUploadUrl = 'https://cohhdwrjbgimbnoragxf.supabase.co/storage/v1/object/' . $bucketName . '/' . $fileName;
-
-    $db = new Database();
-    $headers = $db->getHeaders();
-    $authHeader = '';
-    foreach ($headers as $h) {
-        if (stripos($h, 'Authorization:') === 0) {
-            $authHeader = $h;
-            break;
-        }
-    }
-
-    $ch = curl_init($bucketUploadUrl);
-    curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'PUT');
-    curl_setopt($ch, CURLOPT_POSTFIELDS, file_get_contents($tmpPath));
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        $authHeader,
-        'x-upsert: true',
-        'Content-Type: ' . mime_content_type($tmpPath)
-    ]);
-
-    $uploadResponse = curl_exec($ch);
-
-    if (curl_errno($ch)) {
-        $error_msg = curl_error($ch);
-        curl_close($ch);
-        http_response_code(500);
-        echo json_encode(['error' => 'Error al subir imagen: ' . $error_msg]);
-        exit;
-    }
-
-    $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
-
-    if ($statusCode < 200 || $statusCode >= 300) {
-        http_response_code(500);
-        echo json_encode(['error' => 'La imagen no se subió correctamente', 'status' => $statusCode, 'response' => $uploadResponse]);
-        exit;
-    }
-
-    // Construir URL pública de la imagen
-    $publicUrl = 'https://cohhdwrjbgimbnoragxf.supabase.co/storage/v1/object/public/' . $bucketName . '/' . $fileName;
-
+    // Preparar curso
     $curso = [
-        'titulo' => $_POST['titulo'],
-        'descripcion' => $_POST['descripcion'] ?? '',
-        'instructor' => $_POST['instructor'] ?? 'Por definir',
-        'imagen' => $publicUrl,
-        'precio' => floatval($_POST['precio']),
-        'id_creador' => intval($_POST['id_creador'] ?? 1)
+        'titulo' => $input['titulo'],
+        'descripcion' => $input['descripcion'] ?? '',
+        'instructor' => $input['instructor'] ?? 'Por definir',
+        'imagen' => $input['imagen'],
+        'precio' => floatval($input['precio']),
+        'id_creador' => intval($input['id_creador'])
     ];
 
     $resultado = Cursos::crearCurso($curso);
