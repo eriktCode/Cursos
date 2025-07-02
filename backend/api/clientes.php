@@ -47,6 +47,51 @@ switch ($action) {
         }
         break;
 
+    case 'crearCliente':
+        if ($method === 'POST') {
+            $input = json_decode(file_get_contents("php://input"), true);
+
+            // Validación de campos
+            $camposRequeridos = ['nombre', 'apellido', 'email', 'llave_secreta'];
+            $faltantes = array_diff($camposRequeridos, array_keys(array_filter($input)));
+
+            if (!empty($faltantes)) {
+                http_response_code(400);
+                echo json_encode([
+                    'error' => 'Campos requeridos faltantes',
+                    'campos_faltantes' => array_values($faltantes)
+                ]);
+                break;
+            }
+
+            // Validar fortaleza de llave_secreta (ejemplo mínimo 8 caracteres)
+            if (strlen($input['llave_secreta']) < 8) {
+                http_response_code(400);
+                echo json_encode(['error' => 'La llave secreta debe tener al menos 8 caracteres']);
+                break;
+            }
+
+            $resultado = Clientes::crearCliente($input);
+            $res_json = json_decode($resultado, true);
+
+            if (isset($res_json['error'])) {
+                http_response_code($res_json['http_code'] ?? 500);
+                echo json_encode($res_json);
+            } else {
+                http_response_code(201);
+                // No mostrar la llave secreta en la respuesta
+                unset($res_json[0]['llave_secreta']);
+                echo json_encode([
+                    'mensaje' => 'Cliente creado exitosamente',
+                    'data' => $res_json[0]
+                ]);
+            }
+        } else {
+            http_response_code(405);
+            echo json_encode(['error' => 'Método no permitido']);
+        }
+        break;
+
     case 'eliminarCliente':
     if ($method === 'DELETE') {
         $input = json_decode(file_get_contents("php://input"), true);

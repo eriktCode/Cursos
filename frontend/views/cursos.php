@@ -261,19 +261,19 @@ $usuario = $_SESSION['usuario'];
                                 <p class="card-text">${curso.descripcion || 'Sin descripción'}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="h5 text-primary">$${curso.precio.toFixed(2)}</span>
-                                    ${esCreador ? `
-                                        <div>
+                                    <div>
+                                        ${esCreador ? `
                                             <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${curso.id}">
                                                 <i class="bi bi-pencil"></i>
                                             </button>
                                             <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${curso.id}">
                                                 <i class="bi bi-trash"></i>
                                             </button>
-                                            <button class="btn btn-sm btn-success btn-agregar-carrito" data-id="${curso.id}">
-                                                <i class="bi bi-cart-plus"></i>
-                                            </button>
-                                        </div>
-                                    ` : ''}
+                                        ` : ''}
+                                        <button class="btn btn-sm btn-success btn-agregar-carrito" data-id="${curso.id}">
+                                            <i class="bi bi-cart-plus"></i> Agregar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -334,6 +334,8 @@ $usuario = $_SESSION['usuario'];
             // Mostrar resultados (podría optimizarse reutilizando renderizarCursos)
             let html = '';
             cursosFiltrados.forEach(curso => {
+                const esCreador = curso.id_creador === <?= $usuario['id'] ?>;
+                
                 html += `
                     <div class="col-md-4 mb-4">
                         <div class="card h-100 curso-card">
@@ -344,6 +346,19 @@ $usuario = $_SESSION['usuario'];
                                 <p class="card-text">${curso.descripcion || 'Sin descripción'}</p>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="h5 text-primary">$${curso.precio.toFixed(2)}</span>
+                                    <div>
+                                        ${esCreador ? `
+                                            <button class="btn btn-sm btn-outline-primary btn-editar" data-id="${curso.id}">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger btn-eliminar" data-id="${curso.id}">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        ` : ''}
+                                        <button class="btn btn-sm btn-success btn-agregar-carrito" data-id="${curso.id}">
+                                            <i class="bi bi-cart-plus"></i> Agregar
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -352,6 +367,14 @@ $usuario = $_SESSION['usuario'];
             });
 
             document.getElementById('contenedorCursos').innerHTML = html;
+
+            // Agregar eventos a los botones de agregar al carrito en los resultados de búsqueda
+            document.querySelectorAll('.btn-agregar-carrito').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const idCurso = this.getAttribute('data-id');
+                    agregarAlCarrito(idCurso);
+                });
+            });
         }
 
         // Abrir modal de edición
